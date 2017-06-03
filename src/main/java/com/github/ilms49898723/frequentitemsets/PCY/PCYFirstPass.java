@@ -118,12 +118,12 @@ public class PCYFirstPass {
             super.cleanup(context);
             for (int i = 0; i < mN; ++i) {
                 if (mCount[i] >= mThreshold) {
-                    mMultipleOutputs.write("itemset_1", NullWritable.get(), new Text(String.valueOf(i)));
+                    mMultipleOutputs.write("itemset", NullWritable.get(), new Text(String.valueOf(i)));
                 }
             }
             for (int i = 0; i < HASHTABLE_SIZE; ++i) {
                 if (mHashTables[i] >= mThreshold) {
-                    mMultipleOutputs.write("itemset_2_candidate", NullWritable.get(), new Text(String.valueOf(i)));
+                    mMultipleOutputs.write("candidate", NullWritable.get(), new Text(String.valueOf(i)));
                 }
             }
             mMultipleOutputs.close();
@@ -153,8 +153,8 @@ public class PCYFirstPass {
         job.setNumReduceTasks(1);
         FileInputFormat.addInputPath(job, new Path(input));
         FileOutputFormat.setOutputPath(job, new Path("output-1"));
-        MultipleOutputs.addNamedOutput(job, "itemset-2-candidate", TextOutputFormat.class, NullWritable.class, Text.class);
-        MultipleOutputs.addNamedOutput(job, "itemset-1", TextOutputFormat.class, NullWritable.class, Text.class);
+        MultipleOutputs.addNamedOutput(job, "candidate", TextOutputFormat.class, NullWritable.class, Text.class);
+        MultipleOutputs.addNamedOutput(job, "itemset", TextOutputFormat.class, NullWritable.class, Text.class);
         job.waitForCompletion(true);
     }
 }

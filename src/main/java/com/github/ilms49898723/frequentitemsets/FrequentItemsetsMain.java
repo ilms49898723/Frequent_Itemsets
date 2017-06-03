@@ -36,8 +36,8 @@ public class FrequentItemsetsMain extends Configured implements Tool {
         mN = Integer.parseInt(args[1]);
         mThreshold = Integer.parseInt(args[2]);
         FileUtility.remove("output-1", new Configuration());
-        FileUtility.remove("itemset-1", new Configuration());
-        FileUtility.remove("itemset-2-candidate", new Configuration());
+        FileUtility.remove("itemset", new Configuration());
+        FileUtility.remove("candidate", new Configuration());
         PCYFirstPass.run(mK, mN, mThreshold, args[4]);
         return 0;
     }

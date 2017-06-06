@@ -25,108 +25,122 @@ import java.util.Arrays;
 
 public class PCYSecondPass {
 	
-    private static class PCYSecondValue implements Writable {
-		private String type;
-        private ArrayList<Integer> mItems;
+    private static class PCYPair implements Writable {
+		private IntWritable i;
+		private IntWritable j;
 
-        public PCYSecondValue() {
-            mItems = new ArrayList<>();
-			type = new String();
-        }
-
-        public ArrayList<Integer> getItems() {
-            return mItems;
+        public PCYPair() {
+            i = new IntWritable();
+			j = new IntWritable();
         }
 		
-		public void setType(String t) {
-			type = new String(t);
+		public void set(int v1, int v2) {
+			i.set(v1);
+			j.set(v2);
 		}
 		
-		public String getType() {
-			return type;
+		public int geti() {
+			return i.get();
+		}
+		
+		public int getj() {
+			return j.get();
 		}
 
         @Override
         public void write(DataOutput out) throws IOException {
-			out.writeChars(type);
-            out.writeInt(mItems.size());
-            for (int value : mItems) {
-                out.writeInt(value);
-            }
+			i.write(out);
+			j.write(out);
         }
 
         @Override
         public void readFields(DataInput in) throws IOException {
-			type = new String(in.readLine());
-            int size = in.readInt();
-            mItems = new ArrayList<>();
-            for (int i = 0; i < size; ++i) {
-                mItems.add(in.readInt());
-            }
+			i.readFields(in);
+			j.readFields(in);
         }
     }
 	
-	private static class Pair {
-		public int i;
-		public int j;
+	public static class PCYSecondPassMapper extends Mapper<Object, Text, IntWritable, PCYPair> {
 		
-		public Pair(int i, int j) {
-			this.i = i;
-			this.j = j;
+		private static final int HASHTABLE_SIZE = 100007;
+		
+		private int[] mItems;
+		private int[] mCandidates;
+		private int mN;
+		
+		@Override
+        protected void setup(Context context) throws IOException, InterruptedException {
+            super.setup(context);
+			
+			Configuration conf = context.getConfiguration();
+			mN = conf.getInt("n", -1);
+			String iPath = conf.get("ItemsetPath");
+			String cPath = conf.get("CandidatePath");
+			mItems = new int[mN];
+			mCandidates = new int[HASHTABLE_SIZE];
+			
+			setMap(conf, iPath, cPath);
+        }
+		
+		@Override
+        protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+			
+            String[] tokens = value.toString().split(" ");
+            ArrayList<int> items = new ArrayList<int>();
+            for (String token : tokens) {
+                items.add(Integer.parseInt(token));
+            }
+            items.sort(Integer::compareTo);
+			
+			IntWritable keyOut = new IntWritable(0);
+			for(int i = 0 ; i < items.size() ; i++){
+				if(mItems[i] == 1){
+					for(int j = i+1 ; j < items.size() ; j++){
+						if(mItems[j] == 1 && mCandidates[hash(i, j)] == 1){
+							PCYPair valueOut = new PCYPair();
+							valueOut.set(i, j);
+							context.write(keyOut, valueOut);
+						}
+					}
+				}
+			}
+        }
+		
+		private void setMap(Configuration conf, String p1, String p2) {
+			
+			FileSystem fs = FileSystem.get(conf);
+			Path iPath = new Path(p1);
+			Path cPath = new Path(p2);
+			
+			BufferedReader ibr = new BufferedReader(new InputStreamReader(fs.open(iPath)));
+			BufferedReader cbr = new BufferedReader(new InputStreamReader(fs.open(cPath)));
+			
+			String line;
+			line = ibr.readLine();
+			while (line != null){
+				String[] tokens = line.split(" ");
+				for(String token : tokens){
+					mItems[Integer.parseInt(token)] = 1;
+				}
+				line = br.readLine();
+			}
+			
+			line = cbr.readLine();
+			while (line != null){
+				String[] tokens = line.split(" ");
+				for(String token : tokens){
+					mCandidates[Integer.parseInt(tokens)] = 1;
+				}
+				line = br.readLine();
+			}
 		}
+		
+		private int hash(int a, int b) {
+            return (a * 31 + b) % HASHTABLE_SIZE;
+        }
 	}
 
-    public static class PCYSecondItemSetMapper extends Mapper<Object, Text, IntWritable, PCYSecondValue> {
-        @Override
-        protected void setup(Context context) throws IOException, InterruptedException {
-            super.setup(context);
-        }
-
-        @Override
-        protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-            String[] tokens = value.toString().split(" ");
-            PCYSecondValue outValue = new PCYSecondValue();
-            for (String token : tokens) {
-                outValue.getItems().add(Integer.parseInt(token));
-            }
-            outValue.getItems().sort(Integer::compareTo);
-			outValue.setType("I");
-            IntWritable outKey = new IntWritable(outValue.getItems().get(0));
-            context.write(outKey, outValue);
-        }
-
-        @Override
-        protected void cleanup(Context context) throws IOException, InterruptedException {
-            super.cleanup(context);
-        }
-    }
-	
-	public static class PCYSecondCandidateMapper extends Mapper<Object, Text, IntWritable, PCYSecondValue> {
-        @Override
-        protected void setup(Context context) throws IOException, InterruptedException {
-            super.setup(context);
-        }
-
-        @Override
-        protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-            String[] tokens = value.toString().split(" ");
-            PCYSecondValue outValue = new PCYSecondValue();
-            for (String token : tokens) {
-                outValue.getItems().add(Integer.parseInt(token));
-            }
-            outValue.getItems().sort(Integer::compareTo);
-			outValue.setType("C");
-            IntWritable outKey = new IntWritable(outValue.getItems().get(0));
-            context.write(outKey, outValue);
-        }
-
-        @Override
-        protected void cleanup(Context context) throws IOException, InterruptedException {
-            super.cleanup(context);
-        }
-    }
-
-    public static class PCYFirstReducer extends Reducer<IntWritable, PCYSecondValue, NullWritable, Text> {
+    public static class PCYSecondReducer extends Reducer<IntWritable, PCYSecondValue, NullWritable, Text> {
         private static final int HASHTABLE_SIZE = 100007;
 
         private MultipleOutputs<NullWritable, Text> mMultipleOutputs;
@@ -204,6 +218,8 @@ public class PCYSecondPass {
         conf.setInt("n", n);
         conf.setInt("k", k);
         conf.setInt("threshold", threshold);
+		conf.set("ItemsetPath", "output-1/itemset");
+		conf.set("CandidatePath", "output-1/candidate");
         Job job = new Job(conf, "Frequent Itemsets Pass 2");
 		
         job.setJarByClass(Main.class);

@@ -67,6 +67,7 @@ public class PCYSecondPass {
 		private int[] mItems;
 		private int[] mCandidates;
 		private int mN;
+		private int mK;
 		
 		@Override
         protected void setup(Context context) throws IOException, InterruptedException {
@@ -74,6 +75,7 @@ public class PCYSecondPass {
 			
 			Configuration conf = context.getConfiguration();
 			mN = conf.getInt("n", -1);
+			mK = conf.getInt("k");
 			String iPath = conf.get("ItemsetPath");
 			String cPath = conf.get("CandidatePath");
 			mItems = new int[mN];
@@ -96,7 +98,8 @@ public class PCYSecondPass {
 			for(int i = 0 ; i < items.size() ; i++){
 				if(mItems[i] == 1){
 					for(int j = i+1 ; j < items.size() ; j++){
-						if(mItems[j] == 1 && mCandidates[hash(i, j)] == 1){
+						int[] idx = {i, j};
+						if(mItems[j] == 1 && mCandidates[idx, hash(mK)] == 1){
 							PCYPair valueOut = new PCYPair();
 							valueOut.set(i, j);
 							context.write(keyOut, valueOut);
@@ -135,60 +138,39 @@ public class PCYSecondPass {
 			}
 		}
 		
-		private int hash(int a, int b) {
-            return (a * 31 + b) % HASHTABLE_SIZE;
+		private int hash(int[] idx, int k) {
+			if(k == 1){
+				return idx[0] % HASHTABLE_SIZE;
+			} else {
+				int[] nIdx = Array.copyOfRange(idx, 0, k-1);
+				return (hash(nIdx, k-1) * 31 + idx[k-1]) % HASHTABLE_SIZE;
+			}
         }
 	}
 
-    public static class PCYSecondReducer extends Reducer<IntWritable, PCYSecondValue, NullWritable, Text> {
+    public static class PCYSecondPassReducer extends Reducer<IntWritable, PCYPair, NullWritable, Text> {
         private static final int HASHTABLE_SIZE = 100007;
 
-        private MultipleOutputs<NullWritable, Text> mMultipleOutputs;
-		private int[] mItems;
-		private int[] mCandidates;
-        private ArrayList<Pair> mPairs;
-        private int[] mHashTables;
+		private MultipleOutputs<NullWritable, Text> mMultipleOutputs;
+		private int[][] mCount;
         private int mN;
         private int mThreshold;
 
         @Override
         protected void setup(Context context) throws IOException, InterruptedException {
             super.setup(context);
+			
             Configuration conf = context.getConfiguration();
-            mMultipleOutputs = new MultipleOutputs<>(context);
             mN = conf.getInt("n", -1);
-            mThreshold = conf.getInt("threshold", Integer.MAX_VALUE);
-			mItems = new int[mN];
-			mCandidates = new int [HASHTABLE_SIZE];
-			mPairs = new ArrayList<Pair>();
-			Array.fill(mItems, 0);
-			Array.fill(mCandidates, 0);
-            Arrays.fill(mHashTables, 0);
+			mThreshold = conf.getInt("threshold", 0);
+			mCount = new int[mN][mN];
+			Array.fill(mCount, 0);
         }
 
         @Override
-        protected void reduce(IntWritable key, Iterable<PCYSecondValue> values, Context context) throws IOException, InterruptedException {
-            for (PCYSecondValue value : values) {
-                ArrayList<Integer> items = value.getItems();
-				
-				switch(value.getType()){
-					case "I":{
-						for(int item : items) {
-							mItems[item] = 1;
-						}
-						break;
-					}
-					case "C":{
-						for(int item : items) {
-							mCandidates[item] = 1;
-						}
-						break;
-					}
-					default:{
-						System.err.println("- Error: Type of SecondPass Value is wrong: " + value.getType);
-						break;
-					}
-				}
+        protected void reduce(IntWritable key, Iterable<PCYPair> values, Context context) throws IOException, InterruptedException {
+            for (PCYPair value : values) {
+                mCount[value.geti][value.getj] += 1;
             }
         }
 
@@ -197,30 +179,32 @@ public class PCYSecondPass {
             super.cleanup(context);
 			
             for (int i = 0; i < mN; i++) {
-				for(int j = 0 ; j < mN ; j++){
-					if (mItems[i] == 1 && mItems[j] == 1 && mCandidates[hash(i, j)] == 1) {
-						mPairs.add(new Pair(i, j));
-						mMultipleOutputs.write("count", NullWritable.get(), new Text(String.valueOf(i) + "," + String.valueOf(j)));
+				for(int j = i+1 ; j < mN ; j++){
+					if (mCount[i][j] >= mThreshold) {
+						mMultipleOutputs.write("itemset", NullWritable.get(), new Text(String.valueOf(i) + " " + String.valueOf(j)));
 					}
 				}
-            }
-			
-            mMultipleOutputs.close();
+            }			
         }
 
         private int hash(int a, int b) {
-            return (a * 31 + b) % HASHTABLE_SIZE;
+            if(k == 1){
+				return idx[0] % HASHTABLE_SIZE;
+			} else {
+				int[] nIdx = Array.copyOfRange(idx, 0, k-1);
+				return (hash(nIdx, k-1) * 31 + idx[k-1]) % HASHTABLE_SIZE;
+			}
         }
     }
 
-    public static void run(int k, int n, int threshold) throws IOException, ClassNotFoundException, InterruptedException {
+    public static void run(int k, int n, int threshold, String input) throws IOException, ClassNotFoundException, InterruptedException {
         Configuration conf = new Configuration();
         conf.setInt("n", n);
         conf.setInt("k", k);
         conf.setInt("threshold", threshold);
-		conf.set("ItemsetPath", "output-1/itemset");
-		conf.set("CandidatePath", "output-1/candidate");
-        Job job = new Job(conf, "Frequent Itemsets Pass 2");
+		conf.set("ItemsetPath", "output-" + String.valueof(k-1) + "/itemset");
+		conf.set("CandidatePath", "output-" + String.valueof(k-1) + "/candidate");
+        Job job = new Job(conf, "Frequent Itemsets Pass " + String.valueof(k));
 		
         job.setJarByClass(Main.class);
         job.setMapOutputKeyClass(IntWritable.class);
@@ -233,10 +217,9 @@ public class PCYSecondPass {
         job.setOutputFormatClass(TextOutputFormat.class);
         job.setNumReduceTasks(1);
 		
-		MultipleInputs.addInputPath(job, "output-1/itemset", TextInputFormat.class, PCYSecondItemSetMapper.class);
-		MultipleInputs.addInputPath(job, "output-1/candidate", TextInputFormat.class, PCYSecondCandidateMapper.class);
-        FileOutputFormat.setOutputPath(job, new Path("output-2"));
-        MultipleOutputs.addNamedOutput(job, "count", TextOutputFormat.class, NullWritable.class, Text.class);
+		FileInputFormat.addInputPath(job, new Path(input));
+        FileOutputFormat.setOutputPath(job, new Path("output-" + String.valueof(k)));
+        MultipleOutputs.addNamedOutput(job, "itemset", TextOutputFormat.class, NullWritable.class, Text.class);
         MultipleOutputs.addNamedOutput(job, "candidate", TextOutputFormat.class, NullWritable.class, Text.class);
 		
         job.waitForCompletion(true);

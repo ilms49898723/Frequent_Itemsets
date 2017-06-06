@@ -39,6 +39,12 @@ public class FrequentItemsetsMain extends Configured implements Tool {
         FileUtility.remove("itemset", new Configuration());
         FileUtility.remove("candidate", new Configuration());
         PCYFirstPass.run(mK, mN, mThreshold, args[4]);
+		for(int k = 2 ; k < 3 ; k++){
+			//TODO:n need to be dynamic.
+			int n = mN;
+			PCYSecondPass.run(k, n, mThreshold, args[4]);
+		}
+		
         return 0;
     }
 }

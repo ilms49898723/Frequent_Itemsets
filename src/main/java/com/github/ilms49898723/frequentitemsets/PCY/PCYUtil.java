@@ -8,7 +8,7 @@ public class PCYUtil {
         int base = 1;
         for (int item : items) {
             value += item * base;
-            base = base * base;
+            base = base * 31;
         }
         value = value % mod;
         return Math.abs(value);
@@ -19,7 +19,7 @@ public class PCYUtil {
         int base = 1;
         for (int item : items) {
             value += item * base;
-            base = base * base;
+            base = base * 31;
         }
         value = value % mod;
         return Math.abs(value);

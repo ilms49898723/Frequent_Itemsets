@@ -99,7 +99,7 @@ public class PCYSecondPass {
 				if(mItems[i] == 1){
 					for(int j = i+1 ; j < items.size() ; j++){
 						int[] idx = {i, j};
-						if(mItems[j] == 1 && mCandidates[idx, hash(mK)] == 1){
+						if(mItems[j] == 1 && mCandidates[hash(idx, mK)] == 1){
 							PCYPair valueOut = new PCYPair();
 							valueOut.set(i, j);
 							context.write(keyOut, valueOut);
@@ -152,8 +152,11 @@ public class PCYSecondPass {
         private static final int HASHTABLE_SIZE = 100007;
 
 		private MultipleOutputs<NullWritable, Text> mMultipleOutputs;
+		private int[] mItems;
 		private int[][] mCount;
+		private int[] mCandidates;
         private int mN;
+		private int mK;
         private int mThreshold;
 
         @Override
@@ -162,15 +165,29 @@ public class PCYSecondPass {
 			
             Configuration conf = context.getConfiguration();
             mN = conf.getInt("n", -1);
+			mK = conf.getInt("k");
 			mThreshold = conf.getInt("threshold", 0);
+			String iPath = conf.get("ItemsetPath");
+			mItems = new int[mN];
 			mCount = new int[mN][mN];
+			mCandidates = new int[HASHTABLE_SIZE];
+			Array.fill(mItems, 0);
 			Array.fill(mCount, 0);
+			Array.fill(mCandidates, 0);
+			setMap(conf, iPath);
         }
 
         @Override
         protected void reduce(IntWritable key, Iterable<PCYPair> values, Context context) throws IOException, InterruptedException {
             for (PCYPair value : values) {
-                mCount[value.geti][value.getj] += 1;
+                mCount[value.geti()][value.getj()] += 1;
+				
+				for(int i = 0 ; i < mN ; i++) {
+					if(mItems[i] == 1) {
+						int[] idx = {value.geti, value.getj, i};
+						mCandidates[hash(idx, mK+1)] += 1;
+					}
+				}
             }
         }
 
@@ -184,8 +201,34 @@ public class PCYSecondPass {
 						mMultipleOutputs.write("itemset", NullWritable.get(), new Text(String.valueOf(i) + " " + String.valueOf(j)));
 					}
 				}
-            }			
+			}
+			
+			for (int i = 0 ; i < HASHTABLE_SIZE ; i++){
+				if(mCandidates[i] >= mThreshold) {
+					mMultipleOutputs.write("candidate", NullWritable.get(), new Text(String.valueOf(i)));
+				}
+			}
+			
+			mMultipleOutputs.close();
         }
+		
+		private void setMap(Configuration conf, String itemPath) {
+			
+			FileSystem fs = FileSystem.get(conf);
+			Path iPath = new Path(itemPath);
+			
+			BufferedReader ibr = new BufferedReader(new InputStreamReader(fs.open(iPath)));
+			
+			String line;
+			line = ibr.readLine();
+			while (line != null){
+				String[] tokens = line.split(" ");
+				for(String token : tokens){
+					mItems[Integer.parseInt(token)] = 1;
+				}
+				line = br.readLine();
+			}
+		}
 
         private int hash(int a, int b) {
             if(k == 1){

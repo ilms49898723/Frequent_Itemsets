@@ -107,6 +107,8 @@ public class PCYSecondPass {
 					}
 				}
 			}
+			
+			countKItems();
         }
 		
 		private void setMap(Configuration conf, String p1, String p2) {

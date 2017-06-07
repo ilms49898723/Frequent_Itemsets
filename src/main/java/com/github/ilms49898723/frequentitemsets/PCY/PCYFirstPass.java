@@ -152,9 +152,9 @@ public class PCYFirstPass {
         job.setOutputFormatClass(TextOutputFormat.class);
         job.setNumReduceTasks(1);
         FileInputFormat.addInputPath(job, new Path(input));
-        FileOutputFormat.setOutputPath(job, new Path("output-1"));
-        MultipleOutputs.addNamedOutput(job, "candidate", TextOutputFormat.class, NullWritable.class, Text.class);
-        MultipleOutputs.addNamedOutput(job, "itemset", TextOutputFormat.class, NullWritable.class, Text.class);
+        FileOutputFormat.setOutputPath(job, new Path("frequent-itemsets-1"));
+        MultipleOutputs.addNamedOutput(job, "candidates", TextOutputFormat.class, NullWritable.class, Text.class);
+        MultipleOutputs.addNamedOutput(job, "itemsets", TextOutputFormat.class, NullWritable.class, Text.class);
         job.waitForCompletion(true);
     }
 }

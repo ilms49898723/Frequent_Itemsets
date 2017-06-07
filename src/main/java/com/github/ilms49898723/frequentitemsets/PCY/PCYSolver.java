@@ -236,7 +236,9 @@ public class PCYSolver {
             for (int i = 0; i < newSet.size(); ++i) {
                 ArrayList<Integer> subset = new ArrayList<>();
                 subset.addAll(newSet.subList(0, i));
-                subset.addAll(newSet.subList(i + 1, newSet.size()));
+                if (i + 1 < newSet.size()) {
+                    subset.addAll(newSet.subList(i + 1, newSet.size()));
+                }
                 if (!mFrequentItemsKMinus1.contains(PCYUtil.hash(subset, HASHTABLE_SIZE))) {
                     return false;
                 }

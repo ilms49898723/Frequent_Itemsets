@@ -1,6 +1,7 @@
 package com.github.ilms49898723.frequentitemsets;
 
 import com.github.ilms49898723.frequentitemsets.PCY.PCYFirstPass;
+import com.github.ilms49898723.frequentitemsets.PCY.PCYSolver;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.util.Tool;
@@ -36,7 +37,11 @@ public class FrequentItemsetsMain extends Configured implements Tool {
         mN = Integer.parseInt(args[1]);
         mThreshold = Integer.parseInt(args[2]);
         FileUtility.remove("frequent-itemsets-1", new Configuration());
-        PCYFirstPass.run(mK, mN, mThreshold, args[4]);
+        PCYFirstPass.run(1, mN, mThreshold, args[4]);
+        for (int i = 2; i <= mK; ++i) {
+            FileUtility.remove("frequent-itemsets-" + i, new Configuration());
+            PCYSolver.run(i, mN, mThreshold, args[4]);
+        }
         return 0;
     }
 }

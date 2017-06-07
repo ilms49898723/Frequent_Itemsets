@@ -107,7 +107,8 @@ public class PCYFirstPass {
                 }
                 for (int i = 0; i < items.size(); ++i) {
                     for (int j = i + 1; j < items.size(); ++j) {
-                        mHashTables[hash(items.get(i), items.get(j))] += 1;
+                        int candidates[] = new int[] { items.get(i), items.get(j) };
+                        mHashTables[PCYUtil.hash(candidates, HASHTABLE_SIZE)] += 1;
                     }
                 }
             }
@@ -127,10 +128,6 @@ public class PCYFirstPass {
                 }
             }
             mMultipleOutputs.close();
-        }
-
-        private int hash(int a, int b) {
-            return (a * 31 + b) % HASHTABLE_SIZE;
         }
     }
 

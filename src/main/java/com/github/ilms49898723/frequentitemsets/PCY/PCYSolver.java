@@ -97,6 +97,7 @@ public class PCYSolver {
         private static final int HASHTABLE_SIZE = 10007;
 
         private HashSet<Integer> mHashes;
+        private HashSet<Integer> mFrequentItemsKMinus1;
         private HashSet<Integer> mFrequentItems;
         private ArrayList<Integer> mElements;
         private Context mContext;
@@ -107,9 +108,11 @@ public class PCYSolver {
             super.setup(context);
             mK = context.getConfiguration().getInt("k", -1);
             mHashes = new HashSet<>();
+            mFrequentItemsKMinus1 = new HashSet<>();
             mFrequentItems = new HashSet<>();
             initializeHashes(context);
             initializeFrequentItems(context);
+            initializeFrequentItemsKMinus1(context);
         }
 
         @Override
@@ -174,6 +177,34 @@ public class PCYSolver {
             }
         }
 
+        private void initializeFrequentItemsKMinus1(Context context) {
+            try {
+                FileSystem fileSystem = FileSystem.get(context.getConfiguration());
+                FileStatus[] fileStatuses = fileSystem.listStatus(new Path("frequent-itemsets-" + (mK - 1)));
+                for (FileStatus fileStatus : fileStatuses) {
+                    String[] fileName = fileStatus.getPath().toString().split("/");
+                    if (fileName[fileName.length - 1].contains("itemsets")) {
+                        BufferedReader reader = new BufferedReader(
+                                new InputStreamReader(fileSystem.open(fileStatus.getPath()))
+                        );
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            String[] tokens = line.split(" ");
+                            ArrayList<Integer> set = new ArrayList<>();
+                            for (String token : tokens) {
+                                set.add(Integer.parseInt(token));
+                            }
+                            set.sort(Integer::compareTo);
+                            mFrequentItemsKMinus1.add(PCYUtil.hash(set, HASHTABLE_SIZE));
+                        }
+                        reader.close();
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
         private void generateSets(int now, int index, ArrayList<Integer> elements) throws IOException, InterruptedException {
             if (now == mK) {
                 PCYKey newKey = new PCYKey();
@@ -181,20 +212,36 @@ public class PCYSolver {
                 if (mHashes.contains(hashValue)) {
                     PCYValue newValue = new PCYValue();
                     newKey.getKeys().addAll(elements);
-                    for (int value : mElements) {
-                        if (!newKey.getKeys().contains(value) && mFrequentItems.contains(value)) {
-                            newValue.getValues().add(value);
+                    if (checkNewSet(newKey.getKeys())) {
+                        for (int value : mElements) {
+                            if (!newKey.getKeys().contains(value) && mFrequentItems.contains(value)) {
+                                newValue.getValues().add(value);
+                            }
                         }
+                        mContext.write(newKey, newValue);
                     }
-                    mContext.write(newKey, newValue);
                 }
                 return;
             }
             for (int i = index; i < mElements.size(); ++i) {
-                elements.add(mElements.get(i));
-                generateSets(now + 1, i + 1, elements);
-                elements.remove(elements.size() - 1);
+                if (mFrequentItems.contains(elements.get(i))) {
+                    elements.add(mElements.get(i));
+                    generateSets(now + 1, i + 1, elements);
+                    elements.remove(elements.size() - 1);
+                }
             }
+        }
+
+        private boolean checkNewSet(ArrayList<Integer> newSet) {
+            for (int i = 0; i < newSet.size(); ++i) {
+                ArrayList<Integer> subset = new ArrayList<>();
+                subset.addAll(newSet.subList(0, i));
+                subset.addAll(newSet.subList(i + 1, newSet.size()));
+                if (!mFrequentItemsKMinus1.contains(subset)) {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 

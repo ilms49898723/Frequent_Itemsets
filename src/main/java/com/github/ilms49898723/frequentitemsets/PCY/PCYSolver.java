@@ -208,7 +208,7 @@ public class PCYSolver {
         private void generateSets(int now, int index, ArrayList<Integer> elements) throws IOException, InterruptedException {
             if (now == mK) {
                 PCYKey newKey = new PCYKey();
-                int hashValue = PCYUtil.hash(newKey.getKeys(), HASHTABLE_SIZE);
+                int hashValue = PCYUtil.hash(elements, HASHTABLE_SIZE);
                 if (mHashes.contains(hashValue)) {
                     PCYValue newValue = new PCYValue();
                     newKey.getKeys().addAll(elements);

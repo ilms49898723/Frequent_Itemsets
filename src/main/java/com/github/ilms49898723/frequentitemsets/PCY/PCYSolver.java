@@ -224,7 +224,7 @@ public class PCYSolver {
                 return;
             }
             for (int i = index; i < mElements.size(); ++i) {
-                if (mFrequentItems.contains(elements.get(i))) {
+                if (mFrequentItems.contains(mElements.get(i))) {
                     elements.add(mElements.get(i));
                     generateSets(now + 1, i + 1, elements);
                     elements.remove(elements.size() - 1);

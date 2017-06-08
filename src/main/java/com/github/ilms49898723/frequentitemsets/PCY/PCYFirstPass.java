@@ -52,7 +52,7 @@ public class PCYFirstPass {
         }
     }
 
-    public static class PCYFirstMapper extends Mapper<Object, Text, IntWritable, PCYFirstValue> {
+    private static class PCYFirstMapper extends Mapper<Object, Text, IntWritable, PCYFirstValue> {
         @Override
         protected void setup(Context context) throws IOException, InterruptedException {
             super.setup(context);
@@ -76,7 +76,7 @@ public class PCYFirstPass {
         }
     }
 
-    public static class PCYFirstReducer extends Reducer<IntWritable, PCYFirstValue, NullWritable, Text> {
+    private static class PCYFirstReducer extends Reducer<IntWritable, PCYFirstValue, NullWritable, Text> {
         private static final int HASHTABLE_SIZE = 100007;
 
         private MultipleOutputs<NullWritable, Text> mMultipleOutputs;

@@ -302,7 +302,7 @@ public class PCYSolver {
             super.cleanup(context);
             for (int i = 0; i < HASHTABLE_SIZE; ++i) {
                 if (mHashTable[i] >= mThreshold) {
-                    mMultipleOutputs.write("candidate", NullWritable.get(), new Text(Integer.toString(i)));
+                    mMultipleOutputs.write("candidates", NullWritable.get(), new Text(Integer.toString(i)));
                 }
             }
             mMultipleOutputs.close();

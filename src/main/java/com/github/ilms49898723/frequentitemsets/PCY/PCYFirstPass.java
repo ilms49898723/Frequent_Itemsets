@@ -119,12 +119,12 @@ public class PCYFirstPass {
             super.cleanup(context);
             for (int i = 0; i < mN; ++i) {
                 if (mCount[i] >= mThreshold) {
-                    mMultipleOutputs.write("itemset", NullWritable.get(), new Text(String.valueOf(i)));
+                    mMultipleOutputs.write("itemsets", NullWritable.get(), new Text(String.valueOf(i)));
                 }
             }
             for (int i = 0; i < HASHTABLE_SIZE; ++i) {
                 if (mHashTables[i] >= mThreshold) {
-                    mMultipleOutputs.write("candidate", NullWritable.get(), new Text(String.valueOf(i)));
+                    mMultipleOutputs.write("candidates", NullWritable.get(), new Text(String.valueOf(i)));
                 }
             }
             mMultipleOutputs.close();

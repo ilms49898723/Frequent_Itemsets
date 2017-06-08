@@ -13,8 +13,8 @@ public class FrequentItemsetsMain extends Configured implements Tool {
 
     @Override
     public int run(String[] args) throws Exception {
-        if (args.length != 5) {
-            System.err.println("usage: frequentitemsets <K> <N> <Threshold> <Output Dir> <Input Dir>");
+        if (args.length != 4) {
+            System.err.println("usage: frequentitemsets <K> <N> <Threshold> <Input Dir>");
             return 1;
         }
         boolean errorFlag = false;
@@ -37,10 +37,10 @@ public class FrequentItemsetsMain extends Configured implements Tool {
         mN = Integer.parseInt(args[1]);
         mThreshold = Integer.parseInt(args[2]);
         FileUtility.remove("frequent-itemsets-1", new Configuration());
-        PCYFirstPass.run(1, mN, mThreshold, args[4]);
+        PCYFirstPass.run(1, mN, mThreshold, args[3]);
         for (int i = 2; i <= mK; ++i) {
             FileUtility.remove("frequent-itemsets-" + i, new Configuration());
-            PCYSolver.run(i, mN, mThreshold, args[4]);
+            PCYSolver.run(i, mN, mThreshold, args[3]);
         }
         return 0;
     }

@@ -283,12 +283,12 @@ public class PCYSolver {
                 String output = "";
                 boolean isFirst = true;
                 for (int element : key.getKeys()) {
-                    output += String.valueOf(element);
                     if (!isFirst) {
                         output += " ";
                     } else {
                         isFirst = false;
                     }
+                    output += String.valueOf(element);
                 }
                 mMultipleOutputs.write("itemsets", NullWritable.get(), new Text(output));
                 for (int i = 0; i < HASHTABLE_SIZE; ++i) {

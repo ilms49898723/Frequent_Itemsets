@@ -131,8 +131,8 @@ public class PCYFirstPass {
         }
     }
 
-    public static void run(int k, int n, int threshold, String input) throws IOException, ClassNotFoundException, InterruptedException {
-        Configuration configuration = new Configuration();
+    public static void run(Configuration conf, int k, int n, int threshold, String input) throws IOException, ClassNotFoundException, InterruptedException {
+        Configuration configuration = new Configuration(conf);
         Configuration jConf = new Configuration(configuration);
         jConf.setInt("n", n);
         jConf.setInt("k", k);

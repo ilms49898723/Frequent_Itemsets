@@ -41,9 +41,9 @@ public class FrequentItemsetsMain extends Configured implements Tool {
         mN = Integer.parseInt(args[1]);
         mThreshold = Integer.parseInt(args[2]);
         cleanup();
-        PCYFirstPass.run(1, mN, mThreshold, args[3]);
+        PCYFirstPass.run(getConf(), 1, mN, mThreshold, args[3]);
         for (int i = 2; i <= mK; ++i) {
-            PCYSolver.run(i, mN, mThreshold, args[3]);
+            PCYSolver.run(getConf(), i, mN, mThreshold, args[3]);
         }
         return 0;
     }

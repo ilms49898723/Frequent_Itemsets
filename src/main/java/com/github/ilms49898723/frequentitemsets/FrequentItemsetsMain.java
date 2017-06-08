@@ -4,7 +4,11 @@ import com.github.ilms49898723.frequentitemsets.PCY.PCYFirstPass;
 import com.github.ilms49898723.frequentitemsets.PCY.PCYSolver;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.Tool;
+
+import java.io.IOException;
 
 public class FrequentItemsetsMain extends Configured implements Tool {
     private int mK;
@@ -36,12 +40,28 @@ public class FrequentItemsetsMain extends Configured implements Tool {
         mK = Integer.parseInt(args[0]);
         mN = Integer.parseInt(args[1]);
         mThreshold = Integer.parseInt(args[2]);
-        FileUtility.remove("frequent-itemsets-1", new Configuration());
+        cleanup();
         PCYFirstPass.run(1, mN, mThreshold, args[3]);
         for (int i = 2; i <= mK; ++i) {
-            FileUtility.remove("frequent-itemsets-" + i, new Configuration());
             PCYSolver.run(i, mN, mThreshold, args[3]);
         }
         return 0;
+    }
+
+    private void cleanup() {
+        try {
+            FileSystem fileSystem = FileSystem.get(new Configuration());
+            int index = 1;
+            while (true) {
+                if (fileSystem.exists(new Path("frequent-itemsets-" + index))) {
+                    FileUtility.remove("frequent-itemsets-" + index, new Configuration());
+                    ++index;
+                } else {
+                    break;
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
